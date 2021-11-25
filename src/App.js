@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from "react";
+import { ethers } from "ethers";
 import './App.css';
+import abi from "./util/WavePortal.json"
 
 export default function App() {
 
-  const [currentAccount, setCurrentAccount] = useState("")
+  const [currentAccount, setCurrentAccount] = useState("");
+  // contract address from deployment on etherscan
+  const contractAddress = "0x6D8C1B881Fac8DeBD2cb4819c69A83069E85F05D";
+  const contractABI = abi.abi;
+
+  const [isLoading, setIsLoading] = useState(false);
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -50,8 +57,38 @@ export default function App() {
     }
   }
 
-  const wave = () => {
+  const wave = async () => {
+    setIsLoading(true);
+    try {
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
 
+        let count = await wavePortalContract.getTotalWaves();
+        console.log("Retrieved total wave count...", count.toNumber());
+
+        // execute the wave() transaction on the contract
+        const waveTxn = await wavePortalContract.wave();
+        console.log("Mining...", waveTxn.hash);
+
+        const mineTxn = await waveTxn.wait();
+        console.log("Mined -- ", waveTxn.hash);
+
+        if (mineTxn) setIsLoading(false);
+
+        // get the new total wave count
+        count = await wavePortalContract.getTotalWaves();
+        console.log("Retrieved total wave count...", count.toNumber());
+      } else {
+        console.log("Ethereum object doesn't exist");
+        setIsLoading(false);
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.log(error);
+    }
   }
 
   useEffect(() => {
@@ -72,18 +109,25 @@ export default function App() {
           <br />
           <br />
           This is my Wave Portal, a decentralized application that allows users to create and manage their own waves.
-          <p>Connect your Ethereum wallet and wave at me! </p>
+          <br />
+          <br />
+          Let's connect! Visit me at <a href="https://avrahm.com">Avrahm.com</a> or <a href="https://twitter.com/avrahm">Twitter</a>
         </div>
 
-        <button className="waveButton" onClick={wave}>
-          Wave at Me
-        </button>
+        {!isLoading ? (
+          <button className="waveButton" onClick={wave}>
+            Wave at Me
+          </button>
+        ) : (<div className="waveButton">Sending your wave, please wait...</div>)}
 
         {/* if there is no currentAccount show this button */}
         {!currentAccount && (
-          <button className="waveButton" onClick={connectWallet}>
-            Connect Wallet
-          </button>
+          <>
+            <p>Connect your Ethereum wallet and wave at me! </p>
+            <button className="waveButton" onClick={connectWallet}>
+              Connect Wallet
+            </button>
+          </>
         )}
 
       </div>
