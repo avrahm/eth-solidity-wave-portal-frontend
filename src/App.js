@@ -133,7 +133,7 @@ export default function App() {
           This is my <GM /> Portal, a decentralized application that allows users to say <GM />!
           <br />
           <br />
-          Let's connect! Visit me at <a href="https://avrahm.com">Avrahm.com</a> or <a href="https://twitter.com/avrahm">Twitter</a>
+          Let's connect! Visit me at <a href="https://avrahm.com">Avrahm.com</a> or <a href="https://twitter.com/avrahm">@avrahm</a> on Twitter.
         </div>
 
         <div className="gmBox">
