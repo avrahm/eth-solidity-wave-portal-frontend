@@ -10,6 +10,9 @@
   flex-direction: column;
   justify-content: center;
   max-width: 600px;
+  border: 1px solid #e0e0e0;
+  padding: 25px;
+  box-shadow: #e0e0e0 0px 0px 20px;
 }
 
 .header {
@@ -24,11 +27,33 @@
   margin-top: 16px;
 }
 
-.waveButton {
+.gmBox {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 25px;
+}
+
+.gm {
+  border: #e0e0e0 1px solid;
+  border-radius: 5px;
+  padding: 2px 2px 4px 3px;
+  font-weight: 300;
+  text-align: center;
+  vertical-align: top;
+}
+
+.gmButton {
   cursor: pointer;
   margin-top: 16px;
   padding: 8px;
   border: 0;
   border-radius: 5px;
-  
+  font: 16px sans-serif;
+}
+
+.gmCount {
+  font-size: 22px;
+  font-weight: 600;
 }
