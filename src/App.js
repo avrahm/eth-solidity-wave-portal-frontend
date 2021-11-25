@@ -35,6 +35,7 @@ export default function App() {
         //set the current account
         setCurrentAccount(account);
       } else {
+        setCurrentAccount("");
         console.log("No authorized accounts found");
       }
     } catch (error) {
@@ -115,7 +116,7 @@ export default function App() {
   useEffect(() => {
     checkIfWalletIsConnected();
     getTotalWaves();
-  }, []);
+  }, [currentAccount]);
 
 
   return (
@@ -138,25 +139,26 @@ export default function App() {
 
         <div className="gmBox">
 
-          <div className="gmCount">
-            {waveCount} <GM />'s
-          </div>
-
-          {!isLoading ? (
-            <button className="gmButton" onClick={wave}>
-              Say <GM /> to me
-            </button>
-          ) : (
-            <button disabled className="gmButton">Sending your <span className="gm">gm</span>, please wait...</button>
-          )}
-
           {/* if there is no currentAccount show this button */}
-          {!currentAccount && (
+          {!currentAccount ? (
             <>
               <p>Connect your Ethereum wallet and say <GM /> to me! </p>
               <button className="gmButton" onClick={connectWallet}>
                 Connect Wallet
               </button>
+            </>
+          ) : (
+            <>
+              <div className="gmCount">
+                {waveCount} <GM />'s
+              </div>
+              {!isLoading ? (
+                <button className="gmButton" onClick={wave}>
+                  Say <GM /> to me
+                </button>
+              ) : (
+                <button disabled className="gmButton">Sending your <span className="gm">gm</span>, please wait...</button>
+              )}
             </>
           )}
 
