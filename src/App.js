@@ -8,7 +8,7 @@ import moment from "moment";
 export default function App() {
 
   // contract address from deployment on etherscan
-  const contractAddress = "0x002B241AE1F388556D718b125051cc5E7D1B8309";
+  const contractAddress = "0x346509B58AA8F550a687331b4Ea5bcd8F14b9471";
   const contractABI = abi.abi;
 
   const [currentAccount, setCurrentAccount] = useState("");
@@ -16,8 +16,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [waveCount, setWaveCount] = useState(0);
   const [gmTextArea, setgmTextArea] = useState("");
-
-  const randomColor = Math.floor(Math.random() * 16777215).toString(16);
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -176,7 +174,7 @@ export default function App() {
           This is my <GM /> Portal, a decentralized application that allows users to say <GM />!
           <br />
           <br />
-          Let's connect! Visit me at <a href="https://avrahm.com">Avrahm.com</a> or <a href="https://twitter.com/avrahm">@avrahm</a> on Twitter.
+          Let's connect! Visit me at <a href="https://avrahm.com" rel="noopener noreferrer" target="_blank">Avrahm.com</a> or <a href="https://twitter.com/avrahm" rel="noopener noreferrer" target="_blank">@avrahm</a> on Twitter.
         </div>
 
         <div className="gmBox">
