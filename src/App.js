@@ -3,16 +3,21 @@ import { ethers } from "ethers";
 import './App.css';
 import abi from "./util/WavePortal.json";
 import GM from "./component/GM";
+import moment from "moment";
 
 export default function App() {
 
-  const [currentAccount, setCurrentAccount] = useState("");
   // contract address from deployment on etherscan
-  const contractAddress = "0x6D8C1B881Fac8DeBD2cb4819c69A83069E85F05D";
+  const contractAddress = "0x002B241AE1F388556D718b125051cc5E7D1B8309";
   const contractABI = abi.abi;
 
+  const [currentAccount, setCurrentAccount] = useState("");
+  const [allWaveMsgs, setAllWaveMsgs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [waveCount, setWaveCount] = useState(0);
+  const [gmTextArea, setgmTextArea] = useState("");
+
+  const randomColor = Math.floor(Math.random() * 16777215).toString(16);
 
   const checkIfWalletIsConnected = async () => {
     try {
@@ -34,6 +39,7 @@ export default function App() {
         console.log(`Authorized account: `, account);
         //set the current account
         setCurrentAccount(account);
+        await getData();
       } else {
         setCurrentAccount("");
         console.log("No authorized accounts found");
@@ -60,7 +66,7 @@ export default function App() {
     }
   }
 
-  const wave = async () => {
+  const wave = async (message) => {
     setIsLoading(true);
     try {
       const { ethereum } = window;
@@ -73,18 +79,20 @@ export default function App() {
         console.log("Retrieved total gm count...", count.toNumber());
 
         // execute the wave() transaction on the contract
-        const waveTxn = await wavePortalContract.wave();
+        const waveTxn = await wavePortalContract.wave(message);
         console.log("Mining...", waveTxn.hash);
 
         const mineTxn = await waveTxn.wait();
         console.log("Mined -- ", waveTxn.hash);
 
-        if (mineTxn) setIsLoading(false);
+        if (mineTxn) {
+          setIsLoading(false);
+          setgmTextArea("");
+        }
 
-        // get the new total gm count
-        count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total gm count...", count.toNumber());
-        setWaveCount(count.toNumber());
+        // refresh data
+        await getData();
+
       } else {
         console.log("Ethereum object doesn't exist");
         setIsLoading(false);
@@ -113,11 +121,45 @@ export default function App() {
     }
   }
 
+  const getAllWaveMsgs = async () => {
+    try {
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        // get the messages from the contract
+        const waves = await wavePortalContract.getAllWaveMsgs();
+
+        // loop through the array of messages and store them in an array
+        let wavesCleaned = [];
+        waves.forEach(wave => {
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: new Date(wave.timestamp * 1000),
+            message: wave.message
+          });
+        });
+
+        // set the state of the array
+        setAllWaveMsgs(wavesCleaned);
+      } else {
+        console.log("Ethereum object doesn't exist!")
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const getData = async () => {
+    await getTotalWaves();
+    await getAllWaveMsgs();
+  }
+
   useEffect(() => {
     checkIfWalletIsConnected();
-    getTotalWaves();
-  }, [currentAccount]);
-
+  }, []);
 
   return (
     <div className="mainContainer">
@@ -149,16 +191,46 @@ export default function App() {
             </>
           ) : (
             <>
+              {/* show the total gm count */}
               <div className="gmCount">
                 {waveCount} <GM />'s
               </div>
               {!isLoading ? (
-                <button className="gmButton" onClick={wave}>
-                  Say <GM /> to me
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignContent: 'center', width: '340px', marginTop: '20px' }}>
+                  <textarea className="gmTextArea" placeholder="Say something..."
+                    onChange={e => setgmTextArea(e.target.value)}
+                    value={gmTextArea} />
+                  <button disabled={!gmTextArea} className="gmButton" onClick={() => wave(gmTextArea)}>
+                    Say <GM /> to me
+                  </button>
+                </div>
               ) : (
                 <button disabled className="gmButton">Sending your <span className="gm">gm</span>, please wait...</button>
               )}
+
+              {/* display wave msgs */}
+              {allWaveMsgs.map((wave, index) => {
+                return (
+                  <div key={index} className="gmMessage">
+                    <div className="msgInfo">
+                      <div className="msgAvatar">
+                        {wave.address.substring(0, 4)}
+                      </div>
+                      <div className="msgTime">
+                        {moment(wave.timestamp, "YYYYMMDD").fromNow()}
+                      </div>
+                    </div>
+                    <div className="msgBody">
+                      <div className="msgAddress">
+                        From: {wave.address}
+                      </div>
+                      <div className="msg">
+                        {wave.message}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </>
           )}
 
