@@ -8,7 +8,7 @@ import moment from "moment";
 export default function App() {
 
   // contract address from deployment on etherscan
-  const contractAddress = "0x346509B58AA8F550a687331b4Ea5bcd8F14b9471";
+  const contractAddress = "0x29f9eBF926c18F87a8a5f4509F1026AC18D558b8";
   const contractABI = abi.abi;
 
   const [currentAccount, setCurrentAccount] = useState("");
