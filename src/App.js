@@ -8,7 +8,7 @@ import moment from "moment";
 export default function App() {
 
   // contract address from deployment on etherscan
-  const contractAddress = "0x29f9eBF926c18F87a8a5f4509F1026AC18D558b8";
+  const contractAddress = "0x0c95E3F9b9f50E8118990EFC172d6B7B71E22f71";
   const contractABI = abi.abi;
 
   const [currentAccount, setCurrentAccount] = useState("");
@@ -17,30 +17,33 @@ export default function App() {
   const [waveCount, setWaveCount] = useState(0);
   const [gmTextArea, setgmTextArea] = useState("");
 
+  const [buttonText, setButtonText] = useState("Connect Wallet");
+
+  const [status, setStatus] = useState("");
+
   const checkIfWalletIsConnected = async () => {
     try {
       // extract ethereum object from the window
       const { ethereum } = window;
 
       if (!ethereum) {
-        //if ethereum is not available, then metamask is not installed
-        console.log("No ethereum object found in window");
+        //if ethereum is not available, then MetaMask is not installed
+        setButtonText("MetaMask not installed!");
         return;
       } else {
-        console.log(`Ethereum`, ethereum);
+        setStatus("Wallet connected!");
       }
 
       const accounts = await ethereum.request({ method: "eth_accounts" });
 
       if (accounts.length !== 0) {
         const account = accounts[0];
-        console.log(`Authorized account: `, account);
         //set the current account
         setCurrentAccount(account);
         await getData();
       } else {
         setCurrentAccount("");
-        console.log("No authorized accounts found");
+        setStatus("No authorized accounts found");
       }
     } catch (error) {
       console.log(error);
@@ -51,15 +54,18 @@ export default function App() {
     try {
       const { ethereum } = window;
       if (!ethereum) {
-        console.log("No ethereum object found in window");
+        setButtonText("MetaMask not installed!");
+        checkIfWalletIsConnected();
         return;
       }
 
       const accounts = await ethereum.request({ method: "eth_requestAccounts" });
 
-      console.log(`Connected`, accounts[0]);
       setCurrentAccount(accounts[0]);
+      checkIfWalletIsConnected();
     } catch (error) {
+      setStatus("Unable to connect wallet! Make sure you're using MetaMask and try again.");
+
       console.log(error);
     }
   }
@@ -73,15 +79,12 @@ export default function App() {
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-        let count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total gm count...", count.toNumber());
-
         // execute the wave() transaction on the contract
-        const waveTxn = await wavePortalContract.wave(message);
-        console.log("Mining...", waveTxn.hash);
+        const waveTxn = await wavePortalContract.wave(message, { gasLimit: 300000 });
+        setStatus(`Mining... ${waveTxn.hash}`);
 
         const mineTxn = await waveTxn.wait();
-        console.log("Mined -- ", waveTxn.hash);
+        setStatus(`Mined! -- ${waveTxn.hash}`);
 
         if (mineTxn) {
           setIsLoading(false);
@@ -92,11 +95,14 @@ export default function App() {
         await getData();
 
       } else {
-        console.log("Ethereum object doesn't exist");
+        setButtonText("MetaMask not installed!");
         setIsLoading(false);
       }
     } catch (error) {
       setIsLoading(false);
+      setStatus("Application failed, please try again.");
+
+      checkIfWalletIsConnected();
       console.log(error);
     }
   }
@@ -155,9 +161,49 @@ export default function App() {
     await getAllWaveMsgs();
   }
 
+  let sortAllWaveMsgs = allWaveMsgs.sort((a, b) => new moment(b.timestamp) - new moment(a.timestamp));
+
+  /*
+   * Listen in for emitter events!
+   */
   useEffect(() => {
     checkIfWalletIsConnected();
+
+    let wavePortalContract;
+
+    const onNewWave = async (from, timestamp, message) => {
+      setStatus(`Incoming message...`);
+      setAllWaveMsgs(prevState => [
+        ...prevState,
+        {
+          address: from,
+          timestamp: new Date(timestamp * 1000),
+          message: message,
+        }
+      ]);
+      await getData();
+    };
+
+    if (window.ethereum) {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+
+      wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
+      wavePortalContract.on('NewWave', onNewWave);
+    }
+
+    return () => {
+      if (wavePortalContract) {
+        wavePortalContract.off('NewWave', onNewWave);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setStatus(`Wallet connected: ${currentAccount}`);
+    }, 2000);
+  }, [status])
 
   return (
     <div className="mainContainer">
@@ -184,7 +230,7 @@ export default function App() {
             <>
               <p>Connect your Ethereum wallet and say <GM /> to me! </p>
               <button className="gmButton" onClick={connectWallet}>
-                Connect Wallet
+                {buttonText}
               </button>
             </>
           ) : (
@@ -194,7 +240,11 @@ export default function App() {
                 {waveCount} <GM />'s
               </div>
               {!isLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignContent: 'center', width: '340px', marginTop: '20px' }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column', alignContent: 'center',
+                  width: '340px', marginTop: '20px'
+                }}>
                   <textarea className="gmTextArea" placeholder="Say something..."
                     onChange={e => setgmTextArea(e.target.value)}
                     value={gmTextArea} />
@@ -206,29 +256,37 @@ export default function App() {
                 <button disabled className="gmButton">Sending your <span className="gm">gm</span>, please wait...</button>
               )}
 
+
+              <div className="status" >
+                {status}
+              </div>
+
               {/* display wave msgs */}
-              {allWaveMsgs.map((wave, index) => {
-                return (
-                  <div key={index} className="gmMessage">
-                    <div className="msgInfo">
-                      <div className="msgAvatar">
-                        {wave.address.substring(0, 4)}
+              {
+                sortAllWaveMsgs.map((wave, index) => {
+                  return (
+                    <div key={index} className="gmMessage">
+                      <div className="msgInfo">
+                        <div className="msgAvatar">
+                          {wave.address.substring(0, 5)}
+                        </div>
+                        <div className="msgTime">
+                          {moment(wave.timestamp, "YYYYMMDD").fromNow()}
+                        </div>
                       </div>
-                      <div className="msgTime">
-                        {moment(wave.timestamp, "YYYYMMDD").fromNow()}
+                      <div className="msgBody">
+                        <div className="msgAddress">
+                          From: {wave.address}
+                        </div>
+                        <div className="msg">
+                          {wave.message}
+                        </div>
                       </div>
                     </div>
-                    <div className="msgBody">
-                      <div className="msgAddress">
-                        From: {wave.address}
-                      </div>
-                      <div className="msg">
-                        {wave.message}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })
+              }
+
             </>
           )}
 
