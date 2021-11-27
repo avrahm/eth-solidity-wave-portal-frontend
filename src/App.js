@@ -202,7 +202,7 @@ export default function App() {
   useEffect(() => {
     setTimeout(() => {
       setStatus(`Wallet connected: ${currentAccount}`);
-    }, 2000);
+    }, 8000);
   }, [status])
 
   return (
